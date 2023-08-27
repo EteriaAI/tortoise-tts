@@ -222,9 +222,14 @@ class TextToSpeech:
         self.models_dir = models_dir
         self.autoregressive_batch_size = pick_best_batch_size_for_gpu() if autoregressive_batch_size is None else autoregressive_batch_size
         self.enable_redaction = enable_redaction
-        self.device = torch.device('cuda' if torch.cuda.is_available() else'cpu')
-        if torch.backends.mps.is_available():
-            self.device = torch.device('mps')
+
+        if not device:
+            self.device = torch.device('cuda' if torch.cuda.is_available() else'cpu')
+            if torch.backends.mps.is_available():
+                self.device = torch.device('mps')
+        else:
+            self.device = torch.device(device)
+            
         if self.enable_redaction:
             self.aligner = Wav2VecAlignment()
 
