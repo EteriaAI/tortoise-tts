@@ -41,11 +41,11 @@ MODELS = {
 
 class TimerContext:
     def __enter__(self):
-        self.start_time = time.time()
+        self.start_time = time()
         return self
 
     def __exit__(self, exc_type, exc_value, exc_traceback):
-        self.end_time = time.time()
+        self.end_time = time()
         elapsed_time = self.end_time - self.start_time
         print(f"Elapsed time: {elapsed_time:.6f} seconds")
 
@@ -330,7 +330,7 @@ class TextToSpeech:
                 self.diffusion = self.diffusion.cpu()
 
             print('done')
-            
+
         if return_mels:
             return auto_latent, diffusion_latent, auto_conds, diffusion_conds
         else:
