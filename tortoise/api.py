@@ -315,14 +315,9 @@ class TextToSpeech:
             diffusion_conds = []
             for sample in voice_samples:
                 # The diffuser operates at a sample rate of 24000 (except for the latent inputs)
-                with TimerContext():
-                    sample = torchaudio.functional.resample(sample, 22050, 24000)
-
-                with TimerContext():    
-                    sample = pad_or_truncate(sample, 102400)
-
-                with TimerContext():    
-                    cond_mel = wav_to_univnet_mel_perf(sample.to(self.device), do_normalization=False, device=self.device)
+                sample = torchaudio.functional.resample(sample, 22050, 24000)
+                sample = pad_or_truncate(sample, 102400)
+                cond_mel = wav_to_univnet_mel_perf(sample.to(self.device), do_normalization=False, device=self.device)
 
                 diffusion_conds.append(cond_mel)
 
