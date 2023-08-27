@@ -307,27 +307,31 @@ class TextToSpeech:
             for vs in voice_samples:
                 auto_conds.append(format_conditioning(vs, device=self.device))
 
-            with TimerContext():
-                auto_conds = torch.stack(auto_conds, dim=1)
-                self.autoregressive = self.autoregressive.to(self.device)
-                auto_latent = self.autoregressive.get_conditioning(auto_conds)
-                self.autoregressive = self.autoregressive.cpu()
+            auto_conds = torch.stack(auto_conds, dim=1)
+            self.autoregressive = self.autoregressive.to(self.device)
+            auto_latent = self.autoregressive.get_conditioning(auto_conds)
+            self.autoregressive = self.autoregressive.cpu()
 
-            with TimerContext():
-                diffusion_conds = []
-                for sample in voice_samples:
-                    # The diffuser operates at a sample rate of 24000 (except for the latent inputs)
+            
+            diffusion_conds = []
+            for sample in voice_samples:
+                # The diffuser operates at a sample rate of 24000 (except for the latent inputs)
+                with TimerContext():
                     sample = torchaudio.functional.resample(sample, 22050, 24000)
+
+                with TimerContext():    
                     sample = pad_or_truncate(sample, 102400)
+
+                with TimerContext():    
                     cond_mel = wav_to_univnet_mel(sample.to(self.device), do_normalization=False, device=self.device)
-                    diffusion_conds.append(cond_mel)
 
-            with TimerContext():
-                diffusion_conds = torch.stack(diffusion_conds, dim=1)
+                diffusion_conds.append(cond_mel)
 
-                self.diffusion = self.diffusion.to(self.device)
-                diffusion_latent = self.diffusion.get_conditioning(diffusion_conds)
-                self.diffusion = self.diffusion.cpu()
+            diffusion_conds = torch.stack(diffusion_conds, dim=1)
+
+            self.diffusion = self.diffusion.to(self.device)
+            diffusion_latent = self.diffusion.get_conditioning(diffusion_conds)
+            self.diffusion = self.diffusion.cpu()
 
             print('done')
 
