@@ -327,8 +327,6 @@ class TextToSpeech:
             diffusion_latent = self.diffusion.get_conditioning(diffusion_conds)
             self.diffusion = self.diffusion.cpu()
 
-            print('done')
-
         if return_mels:
             return auto_latent, diffusion_latent, auto_conds, diffusion_conds
         else:
