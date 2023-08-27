@@ -187,3 +187,16 @@ def wav_to_univnet_mel(wav, do_normalization=False, device='cuda' if not torch.b
     if do_normalization:
         mel = normalize_tacotron_mel(mel)
     return mel
+
+cached_stft = None
+def wav_to_univnet_mel_perf(wav, do_normalization=False, device='cuda' if not torch.backends.mps.is_available() else 'mps'):
+    global cached_stft
+    if cached_stft is None:
+        cached_stft = TacotronSTFT(1024, 256, 1024, 100, 24000, 0, 12000)
+        cached_stft = cached_stft.to(device)
+
+    stft = cached_stft
+    mel = stft.mel_spectrogram(wav)
+    if do_normalization:
+        mel = normalize_tacotron_mel(mel)
+    return mel

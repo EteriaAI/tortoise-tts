@@ -18,7 +18,7 @@ from tortoise.models.clvp import CLVP
 from tortoise.models.cvvp import CVVP
 from tortoise.models.random_latent_generator import RandomLatentConverter
 from tortoise.models.vocoder import UnivNetGenerator
-from tortoise.utils.audio import wav_to_univnet_mel, denormalize_tacotron_mel
+from tortoise.utils.audio import wav_to_univnet_mel, wav_to_univnet_mel_perf, denormalize_tacotron_mel
 from tortoise.utils.diffusion import SpacedDiffusion, space_timesteps, get_named_beta_schedule
 from tortoise.utils.tokenizer import VoiceBpeTokenizer
 from tortoise.utils.wav2vec_alignment import Wav2VecAlignment
@@ -312,7 +312,6 @@ class TextToSpeech:
             auto_latent = self.autoregressive.get_conditioning(auto_conds)
             self.autoregressive = self.autoregressive.cpu()
 
-            
             diffusion_conds = []
             for sample in voice_samples:
                 # The diffuser operates at a sample rate of 24000 (except for the latent inputs)
@@ -323,7 +322,7 @@ class TextToSpeech:
                     sample = pad_or_truncate(sample, 102400)
 
                 with TimerContext():    
-                    cond_mel = wav_to_univnet_mel(sample.to(self.device), do_normalization=False, device=self.device)
+                    cond_mel = wav_to_univnet_mel_perf(sample.to(self.device), do_normalization=False, device=self.device)
 
                 diffusion_conds.append(cond_mel)
 
