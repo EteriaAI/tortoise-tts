@@ -38,6 +38,18 @@ MODELS = {
     'rlg_diffuser.pth': 'https://huggingface.co/jbetker/tortoise-tts-v2/resolve/main/.models/rlg_diffuser.pth',
 }
 
+
+class TimerContext:
+    def __enter__(self):
+        self.start_time = time.time()
+        return self
+
+    def __exit__(self, exc_type, exc_value, exc_traceback):
+        self.end_time = time.time()
+        elapsed_time = self.end_time - self.start_time
+        print(f"Elapsed time: {elapsed_time:.6f} seconds")
+
+
 def download_models(specific_models=None):
     """
     Call to download all the models that Tortoise uses.
@@ -294,24 +306,31 @@ class TextToSpeech:
                 voice_samples = [voice_samples]
             for vs in voice_samples:
                 auto_conds.append(format_conditioning(vs, device=self.device))
-            auto_conds = torch.stack(auto_conds, dim=1)
-            self.autoregressive = self.autoregressive.to(self.device)
-            auto_latent = self.autoregressive.get_conditioning(auto_conds)
-            self.autoregressive = self.autoregressive.cpu()
 
-            diffusion_conds = []
-            for sample in voice_samples:
-                # The diffuser operates at a sample rate of 24000 (except for the latent inputs)
-                sample = torchaudio.functional.resample(sample, 22050, 24000)
-                sample = pad_or_truncate(sample, 102400)
-                cond_mel = wav_to_univnet_mel(sample.to(self.device), do_normalization=False, device=self.device)
-                diffusion_conds.append(cond_mel)
-            diffusion_conds = torch.stack(diffusion_conds, dim=1)
+            with TimerContext():
+                auto_conds = torch.stack(auto_conds, dim=1)
+                self.autoregressive = self.autoregressive.to(self.device)
+                auto_latent = self.autoregressive.get_conditioning(auto_conds)
+                self.autoregressive = self.autoregressive.cpu()
 
-            self.diffusion = self.diffusion.to(self.device)
-            diffusion_latent = self.diffusion.get_conditioning(diffusion_conds)
-            self.diffusion = self.diffusion.cpu()
+            with TimerContext():
+                diffusion_conds = []
+                for sample in voice_samples:
+                    # The diffuser operates at a sample rate of 24000 (except for the latent inputs)
+                    sample = torchaudio.functional.resample(sample, 22050, 24000)
+                    sample = pad_or_truncate(sample, 102400)
+                    cond_mel = wav_to_univnet_mel(sample.to(self.device), do_normalization=False, device=self.device)
+                    diffusion_conds.append(cond_mel)
 
+            with TimerContext():
+                diffusion_conds = torch.stack(diffusion_conds, dim=1)
+
+                self.diffusion = self.diffusion.to(self.device)
+                diffusion_latent = self.diffusion.get_conditioning(diffusion_conds)
+                self.diffusion = self.diffusion.cpu()
+
+            print('done')
+            
         if return_mels:
             return auto_latent, diffusion_latent, auto_conds, diffusion_conds
         else:
